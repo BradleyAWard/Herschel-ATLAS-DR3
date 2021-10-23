@@ -86,9 +86,9 @@ def likelihood(data, counterpart_id: str, f250: str, e250: str, SG: str, distanc
         sigma = (k * fwhm) / snr
         f = (1 / (2 * np.pi * (sigma ** 2))) * np.exp(-(data[distance][obj] ** 2) / (2 * (sigma ** 2)))
 
-        # If there is no counterpart, let the likelihood equal 0
+        # If there is no counterpart do not add a likelihood value
         if pd.isnull(data[counterpart_id][obj]):
-            likelihood_ratios.append(0)
+            likelihood_ratios.append(np.nan)
             continue
 
         # Collect the q/n distribution for either a galaxy or star
@@ -127,9 +127,9 @@ def reliability(data, counterpart_id: str, groupid: str, likelihood: str, q0):
     r = []
     for obj in tqdm(range(len(data)), desc='Reliability calculations'):
 
-        # If there is no counterpart let the reliability be 0
+        # If there is no counterpart do not add a reliability value
         if pd.isnull(data[counterpart_id][obj]):
-            r.append(0)
+            r.append(np.nan)
             continue
 
         # If single object
