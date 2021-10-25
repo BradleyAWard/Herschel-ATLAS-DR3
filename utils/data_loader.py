@@ -16,4 +16,6 @@ def full_loader(file_name):
     """ RETURNS THE FULL DATABASE """
     file_path = ROOT + '/data/' + file_name
     data = read_csv(file_path)
+
     return data
+

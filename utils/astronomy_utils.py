@@ -3,9 +3,13 @@
 # ====================================================================================
 
 import numpy as np
+import math as m
+import pandas as pd
 from astropy import units as u
 from astropy.stats import poisson_conf_interval
 from scipy import stats
+from tqdm import tqdm
+from scipy.stats import norm
 
 
 # ====================================================================================
@@ -18,8 +22,7 @@ def euclidean_counts(data, flux: str, s_range: tuple, N, area):
     # Define the minimum and maximum flux range, convert to Jy and put in log space
     min_s, max_s = s_range
     min_s, max_s = min_s / 1000, max_s / 1000
-    min_log_s = np.log10(min_s)
-    max_log_s = np.log10(max_s)
+    min_log_s, max_log_s = np.log10(min_s), np.log10(max_s)
 
     # Adds a random jitter to the flux array for plotting purposes
     def rand_jitter(arr):
@@ -45,21 +48,246 @@ def euclidean_counts(data, flux: str, s_range: tuple, N, area):
     dn_errhi = [j - i for i, j in zip(dn, dn_abserrhi)]
 
     # Follow the same procedure on the errors as the values above
-    dn_domega_errlow = dn_errlow / (area.to(u.sr))
-    dn_domega_errhi = dn_errhi / (area.to(u.sr))
+    dn_domega_error_low = dn_errlow / (area.to(u.sr))
+    dn_domega_error_high = dn_errhi / (area.to(u.sr))
 
-    dn_domega_ds_errlow = dn_domega_errlow / delta_s
-    dn_domega_ds_errhi = dn_domega_errhi / delta_s
+    dn_domega_ds_error_low = dn_domega_error_low / delta_s
+    dn_domega_ds_error_high = dn_domega_error_high / delta_s
 
-    s025_dn_domega_ds_errlow = dn_domega_ds_errlow * s025
-    s025_dn_domega_ds_errhi = dn_domega_ds_errhi * s025
+    s025_dn_domega_ds_error_low = dn_domega_ds_error_low * s025
+    s025_dn_domega_ds_error_high = dn_domega_ds_error_high * s025
 
     # This lines follows from the fact that the logarithm (base 10) of an error, del(x), is 0.434*del(x)/x
-    ntotal_errlow = 0.434 * (s025_dn_domega_ds_errlow / s025_dn_domega_ds)
-    ntotal_errhi = 0.434 * (s025_dn_domega_ds_errhi / s025_dn_domega_ds)
+    ntotal_error_low = 0.434 * (s025_dn_domega_ds_error_low / s025_dn_domega_ds)
+    ntotal_error_high = 0.434 * (s025_dn_domega_ds_error_high / s025_dn_domega_ds)
 
     # Centre the flux range
     s_range_centre = [(s_range[i] + s_range[i + 1]) / 2. for i in range(len(s_range) - 1)]
     s_range_mJy = [i * 1000 for i in s_range_centre]
 
-    return {'flux': s_range_mJy, 'euclidean_counts': ntotal, 'error_low': ntotal_errlow, 'error_high': ntotal_errhi}
+    return {'flux': s_range_mJy, 'euclidean_counts': ntotal, 'error_low': ntotal_error_low,
+            'error_high': ntotal_error_high}
+
+
+# ====================================================================================
+# Redshift distribution function
+# ====================================================================================
+
+def dn_dz_domega(data, min_z, max_z, n, area):
+    """ RETURNS THE REDSHIFT DISTRIBUTION IN UNITS OF d2N/dz/domega [dz-1 sr-1] """
+
+    # convert the area to steradians
+    area = area * (u.deg ** 2)
+    area = area.to(u.sr)
+
+    # Generate a histogram for the data
+    bins = np.linspace(min_z, max_z, n)
+    area = np.full(n, area)
+    counts, bin_edges = np.histogram(data, bins=bins)
+
+    # Determine the counts in units of [dz-1 sr-1]
+    bin_diff = np.diff(bin_edges)
+    counts = [i / (j * k) for i, j, k in zip(counts, bin_diff, area)]
+    bin_centres = [(bin_edges[i] + bin_edges[i + 1]) / 2. for i in range(len(bin_edges) - 1)]
+    return counts, bin_centres
+
+
+# ====================================================================================
+# Lensing Probabilities inspired by Gonzalez-Nuevo et al, 2019
+# ====================================================================================
+
+def lensing_probabilities(data, redshift_source: str, redshift_lens: str, redshift_error_source: str,
+                          redshift_error_lens: str):
+    """ CALCULATES THE LENSING PROBABILITIES OF A SET OF SOURCES """
+
+    # Function defining the Bhattacharyya coefficient (BC), a measure of the difference in probability distributions
+    def BC(mu_p, mu_q, sigma_p, sigma_q):
+        """ CALCULATES THE BHATTACHARYYA COEFFICIENT (MEANS OF DISTRIBUTIONS mu), (STD OF DISTRIBUTIONS sigma) """
+        d = (0.25 * np.log(0.25 * ((sigma_p ** 2 / sigma_q ** 2) + (sigma_q ** 2 / sigma_p ** 2) + 2))) + (
+                0.25 * (((mu_p - mu_q) ** 2) / (sigma_p ** 2 + sigma_q ** 2)))
+        bc = np.exp(-d)
+        return bc
+
+    # Calculate the BC factor for all sources
+    bc_list = []
+    for obj in tqdm(range(len(data)), desc='Calculating Lensing Probabilities'):
+        if m.isnan(data[redshift_source][obj]) | m.isnan(data[redshift_lens][obj]) | m.isnan(
+                data[redshift_error_source][obj]) | m.isnan(data[redshift_error_lens][obj]):
+            bc = m.nan
+            bc_list.append(bc)
+
+        else:
+            # Conventional BC factor
+            bc = BC(data[redshift_source][obj], data[redshift_lens][obj], data[redshift_error_source][obj],
+                    data[redshift_error_lens][obj])
+
+            # Overlap factor
+            mean = data[redshift_source][obj]
+            std = data[redshift_error_source][obj]
+            x = data[redshift_lens][obj] - (3 * data[redshift_error_lens][obj])
+            bc_overlap = norm(mean, std).cdf(x)
+
+            # Calculate the total BC value
+            bc_combined = 1 - (bc + bc_overlap)
+
+            # The overlap can sometimes leave a negative lensing probability
+            if bc_combined < 0:
+                bc_list.append(0)
+            else:
+                bc_list.append(bc_combined)
+
+    return bc_list
+
+
+# ====================================================================================
+# Function to determine the optimal minimum lensing probability
+# ====================================================================================
+
+def optimal_lens_probability(data, reliability: str, lensing_probability: str, z_source: str, false_id_percent,
+                             reliability_thresh=0.8, minimum_z_source=2.5, n=100):
+    """ FUNCTION DETERMINES THE OPTIMAL LENSING PROBABILITY THAT HAS THE LOWEST FALSE ID RATE """
+
+    # Select only sources that meet our reliability threshold
+    source_reliable_id = data[data[reliability] >= reliability_thresh]
+
+    # Function defines the false positive rate for a given lensing probability
+    def p_false(p_critical):
+        lenses = source_reliable_id[(source_reliable_id[lensing_probability] >= p_critical)]
+        n_lenses = len(lenses)
+        lenses = lenses.reset_index()
+
+        # First estimate: the sum of 1 - lensing probability of all sources
+        n_unlensed_1 = 0
+        for obj in range(n_lenses):
+            n_unlensed_value = 1 - lenses[lensing_probability][obj]
+            n_unlensed_1 += n_unlensed_value
+
+        # Second estimate: number of sources with high z multiplied by the fraction of sources likely to be spurious
+        n_unlensed_2 = len(source_reliable_id) * (false_id_percent / 100) * (
+                (len(source_reliable_id[source_reliable_id[z_source] > minimum_z_source])) / (
+            len(source_reliable_id)))
+
+        return n_unlensed_1 / n_lenses, n_unlensed_2 / n_lenses, (n_unlensed_1 + n_unlensed_2) / n_lenses
+
+    # Calculating the false positive rate for a range of critical lensing probabilities
+    p_critical_range = np.linspace(0.01, 0.99, n)
+
+    # Estimating the false positive rate (including estimate 1 and estimate 2 methods)
+    estimate1 = []
+    estimate2 = []
+    p_false_positive = []
+    for p in tqdm(p_critical_range, desc='Calculating the False Positive rates'):
+        estimate1_value, estimate2_value, false_positive = p_false(p)
+        p_false_positive.append(false_positive)
+        estimate1.append(estimate1_value)
+        estimate2.append(estimate2_value)
+
+    # Determining the optimal minimum lensing probability
+    index_min = np.argmin(p_false_positive)
+    p_optimal = p_critical_range[index_min]
+
+    return p_critical_range, p_false_positive, estimate1, estimate2, p_optimal
+
+
+# =========================================================================================================
+# Function to clean a sample of potential lensing candidates of local galaxies, blazars and variable stars
+# =========================================================================================================
+
+def clean_lensed_candidates(data, f250: str, f350: str, identification: str, var_stars: list, blazars: list):
+    """ FUNCTION CLEANS A SAMPLE OF LOCAL GALAXIES, BLAZARS AND VARIABLE STARS """
+
+    # Restrict ourselves to distant objects to remove local galaxies
+    candidates = data[(data[f250] / data[f350] < 1.5)]
+    local_galaxies = data[(data[f250] / data[f350] >= 1.5)]
+
+    # Remove variable stars from list
+    for star in var_stars:
+        star_found = data[data[identification] == star]
+        candidates = pd.concat([candidates, star_found, star_found]).drop_duplicates(keep=False)
+
+    # Remove blazars from list
+    for blazar in blazars:
+        blazar_found = data[data[identification] == blazar]
+        candidates = pd.concat([candidates, blazar_found, blazar_found]).drop_duplicates(keep=False)
+
+    return candidates
+
+
+# =========================================================================================================
+# Function that splits the lensed sample from the full sample
+# =========================================================================================================
+
+def lens_split(data, f500: str, reliability: str, lens_probability: str, lens_probability_thresh, flux_500_thresh=0.1, reliability_thresh=0.8):
+    """ RETURNS THE LENSED CANDIDATES FROM A SET OF SOURCES """
+
+    # Conditions for the <100 mJy sample to be lensed
+    candidates = data[(data[f500] < flux_500_thresh) &
+                            (data[reliability] > reliability_thresh) &
+                            (data[lens_probability] >= lens_probability_thresh)]
+
+    return candidates
+
+
+# =========================================================================================================
+# Cumulative number counts function
+# =========================================================================================================
+
+def cumulative_counts(data, flux: str, s_range: tuple, N, area):
+    """ CALCULATES THE CUMULATIVE COUNTS FOR A SET OF SOURCES """
+
+    # Define the minimum and maximum flux range, convert to Jy and put in log space
+    min_s, max_s = s_range
+    min_s, max_s = min_s / 1000, max_s / 1000
+    min_log_s, max_log_s = np.log10(min_s), np.log10(max_s)
+    s_range_Jy = np.sort(np.logspace(min_log_s, max_log_s, N))
+    s_range_mJy = [s * 1000 for s in s_range_Jy]
+
+    # Calculate the number greater than a given flux value
+    n_gts = []
+    n = []
+
+    for s in s_range_Jy:
+        n_value = len([flux for flux in data[flux] if flux >= s])
+        n.append(n_value)
+        n_gts.append(n_value / area)
+
+    # Define the confidence interval based on Poisson counting statistics
+    n_abserr_low, n_abserr_high = poisson_conf_interval(n)
+
+    # calculate the upper and lower limits on our counts
+    n_error_low = [i - j for i, j in zip(n, n_abserr_low)]
+    n_error_high = [j - i for i, j in zip(n, n_abserr_high)]
+    n_gts_error_low = [(i / area) for i in n_error_low]
+    n_gts_error_high = [(i / area) for i in n_error_high]
+
+    return s_range_mJy, n_gts, n_gts_error_low, n_gts_error_high
+
+
+# =========================================================================================================
+# Lensing fraction function
+# =========================================================================================================
+
+def lensing_fraction(data, lensed_candidates, f500: str, s_range: tuple, N, area):
+    """ RETURNS THE LENSING FRACTION GIVEN A SAMPLE OF CANDIDATE LENSES AND THE TOTAL SAMPLE """
+
+    # Define the minimum and maximum flux range, convert to Jy and put in log space
+    min_s, max_s = s_range
+    min_s, max_s = min_s / 1000, max_s / 1000
+    min_log_s, max_log_s = np.log10(min_s), np.log10(max_s)
+    s_range = np.logspace(min_log_s, max_log_s, N)
+    s_range_mJy = [i * 1000 for i in s_range]
+
+    # Calculate the number greater than a given flux value
+    n_gts_total = []
+    n_gts_lens = []
+
+    for s in s_range:
+        n_total_value = len([flux for flux in data[f500] if flux >= s])
+        n_gts_total.append(n_total_value / area)
+        n_lens_value = len([flux for flux in lensed_candidates[f500] if flux >= s])
+        n_gts_lens.append(n_lens_value / area)
+
+    # Calculating the lensing fraction
+    frac500 = [lens / total for lens, total in zip(n_gts_lens, n_gts_total)]
+
+    return s_range_mJy, frac500
