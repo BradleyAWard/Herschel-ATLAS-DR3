@@ -217,13 +217,14 @@ def clean_lensed_candidates(data, f250: str, f350: str, identification: str, var
 # Function that splits the lensed sample from the full sample
 # =========================================================================================================
 
-def lens_split(data, f500: str, reliability: str, lens_probability: str, lens_probability_thresh, flux_500_thresh=0.1, reliability_thresh=0.8):
+def lens_split(data, f500: str, reliability: str, lens_probability: str, lens_probability_thresh, flux_500_thresh=0.1,
+               reliability_thresh=0.8):
     """ RETURNS THE LENSED CANDIDATES FROM A SET OF SOURCES """
 
     # Conditions for the <100 mJy sample to be lensed
     candidates = data[(data[f500] < flux_500_thresh) &
-                            (data[reliability] > reliability_thresh) &
-                            (data[lens_probability] >= lens_probability_thresh)]
+                      (data[reliability] > reliability_thresh) &
+                      (data[lens_probability] >= lens_probability_thresh)]
 
     return candidates
 
@@ -291,3 +292,73 @@ def lensing_fraction(data, lensed_candidates, f500: str, s_range: tuple, N, area
     frac500 = [lens / total for lens, total in zip(n_gts_lens, n_gts_total)]
 
     return s_range_mJy, frac500
+
+
+# =========================================================================================================
+# Genuine multiple counterparts function
+# =========================================================================================================
+
+def genuine_multiples(data, distance: str, groupid: str, redshift: str, redshift_errors: str, maximum_radius=8):
+    """ FUNCTION DETERMINES THE DISTRIBUTION OF delta(z)/sigma(delta(z)) USED FOR THE DETECTION OF MULTIPLES """
+
+    # Limit the data to the radius where multiples are likely to occur
+    data_limit = data[data[distance] <= maximum_radius]
+
+    # Function to find the closest pair in an array, which will be used to find the closest redshift pair
+    def closest_pair(arr, n):
+        b = list(arr)
+        if n <= 1: return
+        arr.sort()
+        minDiff = arr[1] - arr[0]
+
+        for i in range(2, n):
+            minDiff = min(minDiff, arr[i] - arr[i - 1])
+
+        for i in range(1, n):
+            if (arr[i] - arr[i - 1]) == minDiff:
+                if b.index(arr[i]) > b.index(arr[i - 1]):
+                    return arr[i - 1], arr[i]
+                else:
+                    return arr[i], arr[i - 1]
+
+    # We divide the data into their ID groups
+    data_groups = data_limit.groupby(groupid)
+
+    z_pairs = []
+    z_error_pairs = []
+    # Finding closest pairs and appending the redshifts and errors to lists
+    for name, group in tqdm(data_groups, desc="Finding Pairs"):
+
+        # We randomize the group so that delta(z) can be positive or negative, and then find the closest pair
+        group = group.sample(frac=1, replace=False)
+        pair = closest_pair(np.array(group[redshift]), len(group[redshift]))
+
+        # If we find a pair
+        if pair is not None:
+
+            # Obtain their redshifts
+            z1 = pair[0]
+            z2 = pair[1]
+            z_pairs.append(pair)
+
+            # Obtain their corresponding redshift errors
+            z1_error = group.loc[group[redshift] == z1, redshift_errors].iloc[0]
+            z2_error = group.loc[group[redshift] == z2, redshift_errors].iloc[0]
+            z_error_pairs.append((z1_error, z2_error))
+
+        # If we do not find a pair
+        else:
+            z_pairs.append((np.nan, np.nan))
+            z_error_pairs.append((np.nan, np.nan))
+
+    # Calculating delta(z)/sigma(delta(z))
+    delta_div_sigma = []
+    for pair in range(len(z_pairs)):
+        delta_z = z_pairs[pair][1] - z_pairs[pair][0]
+        sigma_delta_z = np.sqrt((z_error_pairs[pair][1] ** 2) + (z_error_pairs[pair][0] ** 2))
+        delta_z_div_sigma_delta_z = delta_z / sigma_delta_z
+        delta_div_sigma.append(delta_z_div_sigma_delta_z)
+
+    return delta_div_sigma
+
+
