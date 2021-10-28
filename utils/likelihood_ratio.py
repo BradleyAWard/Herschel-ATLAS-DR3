@@ -77,7 +77,6 @@ def likelihood(data, counterpart_id: str, f250: str, e250: str, SG: str, distanc
                qn_gal: tuple, qn_stars: tuple):
     """ RETURNS THE LR VALUES FOR A SET OF SOURCES """
 
-    # TODO - Create tests (utils.likelihood)
     likelihood_ratios = []
     for obj in tqdm(range(len(data)), desc='Likelihood Ratio calculations'):
 
@@ -123,7 +122,6 @@ def reliability(data, counterpart_id: str, groupid: str, likelihood: str, q0):
     sum_likelihood = data.groupby([groupid])[likelihood]
     data = data.assign(sum_lr=sum_likelihood.transform(sum))
 
-    # TODO - Create tests (utils.reliability)
     r = []
     for obj in tqdm(range(len(data)), desc='Reliability calculations'):
 

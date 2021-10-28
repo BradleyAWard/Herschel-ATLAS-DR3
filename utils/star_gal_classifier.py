@@ -27,7 +27,7 @@ def classification(data, counterpart_id: str, j: str, k: str, g: str, i: str, ps
     """ FUNCTION THAT CLASSIFIES A DATABASE WITH J-K AND g-i COLOURS """
     jk = data[j] - data[k]
     # TODO - gi variable needs to be changed back to g - i when the data is downloaded
-    gi = data[g] + data[i]
+    gi = data[g] - data[i]
     jk_cut = [stellar_locus(colour, 0.2) for colour in gi]
 
     classes = []

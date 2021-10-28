@@ -24,8 +24,8 @@ def N_false(data, reliability: str, r_thresh):
 
 def completeness(data, reliability: str, f250: str, e250: str, q0, r_thresh, snr_thresh=4):
     """ FUNCTION TO CALCULATE THE COMPLETENESS OF A SET OF SOURCES """
-    n_reliable = [rel for rel in data[reliability] if rel > r_thresh]
-    n_snr = [snr for snr in (data[f250] / data[e250]) if snr > snr_thresh]
+    n_reliable = [rel for rel in data[reliability] if rel >= r_thresh]
+    n_snr = [snr for snr in (data[f250] / data[e250]) if snr >= snr_thresh]
     eta = len(n_reliable) / (len(n_snr) * q0)
     return eta
 
