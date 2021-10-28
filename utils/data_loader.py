@@ -13,7 +13,12 @@ ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), os.pardir))
 # =====================================================================================
 
 def full_loader(file_name):
-    """ RETURNS THE FULL DATABASE """
+    """
+    RETURNS THE FULL DATABASE
+
+    :param file_name: Name of the data file located in 'data'
+    :return: data
+    """
     file_path = ROOT + '/data/' + file_name
     data = read_csv(file_path)
 

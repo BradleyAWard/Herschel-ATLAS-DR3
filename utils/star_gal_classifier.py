@@ -11,7 +11,13 @@ from tqdm import tqdm
 # ====================================================================================
 
 def stellar_locus(x, offset):
-    """ BALDRY ET AL, 2010 STELLAR LOCUS FUNCTION """
+    """
+    BALDRY ET AL, 2010 STELLAR LOCUS FUNCTION
+
+    :param x: Value of g-i colour
+    :param offset: Offset from stellar locus for star-galaxy classifier
+    """
+
     if x < 0.3:
         return 0.2228 + offset
     if (x >= 0.3) & (x < 2.3):
@@ -24,7 +30,19 @@ def stellar_locus(x, offset):
 # ====================================================================================
 
 def classification(data, counterpart_id: str, j: str, k: str, g: str, i: str, pstar: str):
-    """ FUNCTION THAT CLASSIFIES A DATABASE WITH J-K AND g-i COLOURS """
+    """
+    FUNCTION THAT CLASSIFIES A DATABASE WITH J-K AND g-i COLOURS
+
+    :param data: Input data file
+    :param counterpart_id: String for the counterpart IDs column
+    :param j: String for the J magnitude column
+    :param K: String for the K magnitude column
+    :param g: String for the g magnitude column
+    :param i: String for the i magnitude column
+    :param pstar: String for the VIKING stellar probability column
+    :return: classes
+    """
+
     jk = data[j] - data[k]
     # TODO - gi variable needs to be changed back to g - i when the data is downloaded
     gi = data[g] - data[i]

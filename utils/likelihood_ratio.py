@@ -14,7 +14,20 @@ from tqdm import tqdm
 # ====================================================================================
 
 def N(data, background, Ndata, Nback, r, band: str, bins=40, mag_min=9, mag_max=22):
-    """ FUNCTION THAT CREATES n(real) and n(normalized) DISTRIBUTIONS FOR A SET OF SOURCES """
+    """
+    FUNCTION THAT CREATES n(real) and n(normalized) DISTRIBUTIONS FOR A SET OF SOURCES
+
+    :param data: Input data file
+    :param background: Input background file
+    :param Ndata: Number of unique positions in the data file
+    :param Nback: Number of unique positions in the background file
+    :param r: Maximum radial search used [arcsec]
+    :param band: The magnitude band column used to generate magnitude distributions
+    :param bins: The number of bins in the magnitude distributions
+    :param mag_min: The minimum magnitude of magnitude distributions
+    :param mag_max: The maximum magnitude of magnitude distributions
+    :return: bin_centres, n_real, n_data_normalized, n_back_normalized
+    """
 
     # Create histograms for the data, background and n(real)
     n_data, mag = np.histogram(data[band], bins=bins, range=(mag_min, mag_max))
@@ -36,7 +49,19 @@ def N(data, background, Ndata, Nback, r, band: str, bins=40, mag_min=9, mag_max=
 # ====================================================================================
 
 def q_div_n(n_real, n_normalized, q0, bincentres, window_size, mag_min=9, mag_max=22, n=100):
-    """ RETURNS THE q/n DISTRIBUTION GIVEN n(real) """
+    """
+    RETURNS THE q/n DISTRIBUTION GIVEN n(real)
+
+    :param n_real: The distribution of true counterparts
+    :param n_normalized: The normalized distribution of background sources
+    :param q0: Fraction of sources beyond the limiting magnitude of the crossmatched survey
+    :param bincentres: Bin centres of the distributions
+    :param window_size: Size of the window used for the moving average of q/n when interpolated
+    :param mag_min: The minimum magnitude of magnitude distributions
+    :param mag_max: The maximum magnitude of magnitude distributions
+    :param n: The number of interpolated values along the magnitude axis
+    :return: mag_range, q, q_over_n, interpolated_qn
+    """
 
     q = q0 * (n_real / sum(n_real))
     q_over_n = q / n_normalized
@@ -75,7 +100,22 @@ def q_div_n(n_real, n_normalized, q0, bincentres, window_size, mag_min=9, mag_ma
 
 def likelihood(data, counterpart_id: str, f250: str, e250: str, SG: str, distance: str, band: str, k, fwhm,
                qn_gal: tuple, qn_stars: tuple):
-    """ RETURNS THE LR VALUES FOR A SET OF SOURCES """
+    """
+    RETURNS THE LR VALUES FOR A SET OF SOURCES
+
+     :param data: Input data file
+     :param counterpart_id: String for the counterpart IDs column
+     :param f250: String for the 250-micron flux column [Jy]
+     :param e250: String for the 250-micron flux error column [Jy]
+     :param SG: String for Star-Galaxy classifier flag column [0 - Star, 1 - Galaxy]
+     :param distance: String for the separation column [arcsec]
+     :param band: String for the magnitude band column used for the LR process
+     :param k: Value of k-constant
+     :param fwhm: Full Width at Half Maximum of 250-micron detections
+     :param qn_gal: Tuple containing (bins, q/n values for galaxies)
+     :param qn_stars: Tuple containing (bins, q/n values for stars)
+     :return: likelihood_ratios
+    """
 
     likelihood_ratios = []
     for obj in tqdm(range(len(data)), desc='Likelihood Ratio calculations'):
@@ -118,7 +158,16 @@ def likelihood(data, counterpart_id: str, f250: str, e250: str, SG: str, distanc
 # ====================================================================================
 
 def reliability(data, counterpart_id: str, groupid: str, likelihood: str, q0):
-    """ RETURNS THE RELIABILITY VALUES FOR A SET OF SOURCES """
+    """
+    RETURNS THE RELIABILITY VALUES FOR A SET OF SOURCES
+
+    :param data: Input data file
+    :param counterpart_id: String for the counterpart IDs column
+    :param groupid: String for the group ID column
+    :param likelihood: String for the likelihood values column
+    :param q0: Fraction of sources beyond the limiting magnitude of the crossmatched survey
+    :return: r
+    """
     sum_likelihood = data.groupby([groupid])[likelihood]
     data = data.assign(sum_lr=sum_likelihood.transform(sum))
 

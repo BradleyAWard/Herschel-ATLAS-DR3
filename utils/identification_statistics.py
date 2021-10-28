@@ -11,7 +11,15 @@ from prettytable import PrettyTable
 # ====================================================================================
 
 def N_false(data, reliability: str, r_thresh):
-    """ FUNCTION TO DETERMINE THE FALSE ID RATE OF A SET OF SOURCES """
+    """
+    FUNCTION TO DETERMINE THE FALSE ID RATE OF A SET OF SOURCES
+
+    :param data: Input data file
+    :param reliability: String for the reliability column
+    :param r_thresh: Minimum reliability threshold for false ID calculation
+    :return: n_false_ids, n_false_ids_percent
+    """
+
     false_ids = [(1 - r) for r in data[reliability] if r >= r_thresh]
     n_false_ids = np.sum(false_ids)
     n_false_ids_percent = n_false_ids / len(data) * 100
@@ -23,7 +31,19 @@ def N_false(data, reliability: str, r_thresh):
 # ====================================================================================
 
 def completeness(data, reliability: str, f250: str, e250: str, q0, r_thresh, snr_thresh=4):
-    """ FUNCTION TO CALCULATE THE COMPLETENESS OF A SET OF SOURCES """
+    """
+    FUNCTION TO CALCULATE THE COMPLETENESS OF A SET OF SOURCES
+
+    :param data: Input data file
+    :param reliability: String for the reliability column
+    :param f250: String for the 250-micron flux column [Jy]
+    :param e250: String for the 250-micron flux error column [Jy]
+    :param q0: Fraction of sources beyond the limiting magnitude of the crossmatched survey
+    :param r_thresh: Minimum reliability threshold for false ID calculation
+    :param snr_thresh: Minimum SNR threshold for false ID calculation
+    :return: eta
+    """
+
     n_reliable = [rel for rel in data[reliability] if rel >= r_thresh]
     n_snr = [snr for snr in (data[f250] / data[e250]) if snr >= snr_thresh]
     eta = len(n_reliable) / (len(n_snr) * q0)
@@ -35,7 +55,15 @@ def completeness(data, reliability: str, f250: str, e250: str, q0, r_thresh, snr
 # ====================================================================================
 
 def cleanness(data, reliability: str, r_thresh):
-    """ FUNCTION TO CALCULATE THE CLEANNESS OF A SET OF SOURCES """
+    """
+    FUNCTION TO CALCULATE THE CLEANNESS OF A SET OF SOURCES
+
+    :param data: Input data file
+    :param reliability: String for the reliability column
+    :param r_thresh: Minimum reliability threshold for false ID calculation
+    :return: c
+    """
+
     false_ids = [(1 - r) for r in data[reliability] if r >= r_thresh]
     n_false_ids = np.sum(false_ids)
     c = 1 - (n_false_ids / len(data))
@@ -47,7 +75,17 @@ def cleanness(data, reliability: str, r_thresh):
 # ====================================================================================
 
 def colour_split(data, f250: str, f350: str, red_green, green_blue):
-    """ FUNCTION THAT SPLITS A SET OF SOURCES INTO THREE COLOURS """
+    """
+    FUNCTION THAT SPLITS A SET OF SOURCES INTO THREE COLOURS
+
+    :param data: Input data file
+    :param f250: String for the 250-micron flux column [Jy]
+    :param f350: String for the 350-micron flux column [Jy]
+    :param red_green: Colour border separating red and green sources
+    :param green_blue: Colour border separating green and blue sources
+    :return: red, green, blue
+    """
+
     blue = data[(data[f250] / data[f350]) > green_blue]
     green = data[((data[f250] / data[f350]) > red_green) & ((data[f250] / data[f350]) < green_blue)]
     red = data[(data[f250] / data[f350]) < red_green]
@@ -59,7 +97,18 @@ def colour_split(data, f250: str, f350: str, red_green, green_blue):
 # ====================================================================================
 
 def multiplicity_reliability(sources, groupid: str, groupsize: str, distance: str, reliability: str, r_thresh=0.8, max_counterparts=10):
-    """ FUNCTION GENERATES A TABLE FOR THE RELIABLE PERCENTAGE OF IDs AS A FUNCTION OF THE NUMBER OF IDs FOUND """
+    """
+    FUNCTION GENERATES A TABLE FOR THE RELIABLE PERCENTAGE OF IDs AS A FUNCTION OF THE NUMBER OF IDs FOUND
+
+    :param sources: Input sources file
+    :param groupid: String for the group ID column
+    :param groupsize: String for the group size column
+    :param distance: String for the separation column [arcsec]
+    :param reliability: String for the reliability column
+    :param r_thresh: Minimum reliability threshold
+    :param max_counterparts: Maximum number of counterparts to be output in table
+    :return: table
+    """
 
     # Setup a table for the output
     t = PrettyTable(['N (Match)', 'N (Data)', 'N (Reliable)', 'Reliable Percentage', 'Average Separation'], float_format=".2")
