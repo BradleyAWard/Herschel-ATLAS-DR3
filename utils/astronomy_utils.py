@@ -17,7 +17,16 @@ from scipy.stats import norm
 # ====================================================================================
 
 def euclidean_counts(data, flux: str, s_range: tuple, N, area):
-    """ CALCULATES THE EUCLIDEAN-NORMALIZED FLUX COUNTS FOR A SET OF SOURCES """
+    """
+    CALCULATES THE EUCLIDEAN-NORMALIZED FLUX COUNTS FOR A SET OF SOURCES
+
+    :param data: Input data file
+    :param flux: String for flux column
+    :param s_range: Tuple for minimum and maximum flux [mJy]
+    :param N: Number of data points required
+    :param area: Survey area [square degrees]
+    :return: Dictionary with flux, euclidean counts and low and high error bars
+    """
 
     # Define the minimum and maximum flux range, convert to Jy and put in log space
     min_s, max_s = s_range
@@ -74,7 +83,16 @@ def euclidean_counts(data, flux: str, s_range: tuple, N, area):
 # ====================================================================================
 
 def dn_dz_domega(data, min_z, max_z, n, area):
-    """ RETURNS THE REDSHIFT DISTRIBUTION IN UNITS OF d2N/dz/domega [dz-1 sr-1] """
+    """
+    RETURNS THE REDSHIFT DISTRIBUTION IN UNITS OF d2N/dz/domega [dz-1 sr-1]
+
+    :param data: Input data file
+    :param min_z: Minimum redshift value
+    :param max_z: Maximum redshift value
+    :param n: Number of required bins
+    :param area: Survey area [square degrees]
+    :return: counts, bin_centres
+    """
 
     # convert the area to steradians
     area = area * (u.deg ** 2)
@@ -98,11 +116,28 @@ def dn_dz_domega(data, min_z, max_z, n, area):
 
 def lensing_probabilities(data, redshift_source: str, redshift_lens: str, redshift_error_source: str,
                           redshift_error_lens: str):
-    """ CALCULATES THE LENSING PROBABILITIES OF A SET OF SOURCES """
+    """
+    CALCULATES THE LENSING PROBABILITIES OF A SET OF SOURCES
+
+    :param data: Input data file
+    :param redshift_source: String for redshift of the expected source column
+    :param redshift_lens: String for redshift of the expected lens column
+    :param redshift_error_source: String for redshift error of the expected source column
+    :param redshift_error_lens: String for redshift error of the expected lens column
+    :return: bc_list
+    """
 
     # Function defining the Bhattacharyya coefficient (BC), a measure of the difference in probability distributions
     def BC(mu_p, mu_q, sigma_p, sigma_q):
-        """ CALCULATES THE BHATTACHARYYA COEFFICIENT (MEANS OF DISTRIBUTIONS mu), (STD OF DISTRIBUTIONS sigma) """
+        """
+        CALCULATES THE BHATTACHARYYA COEFFICIENT
+
+        :param mu_p: Mean value of the p Gaussian distribution
+        :param mu_q: Mean value of the q Gaussian distribution
+        :param sigma_p: Standard deviation of the p Gaussian distribution
+        :param sigma_q: Standard deviation of the q Gaussian distribution
+        :return: bc
+        """
         d = (0.25 * np.log(0.25 * ((sigma_p ** 2 / sigma_q ** 2) + (sigma_q ** 2 / sigma_p ** 2) + 2))) + (
                 0.25 * (((mu_p - mu_q) ** 2) / (sigma_p ** 2 + sigma_q ** 2)))
         bc = np.exp(-d)
@@ -145,7 +180,19 @@ def lensing_probabilities(data, redshift_source: str, redshift_lens: str, redshi
 
 def optimal_lens_probability(data, reliability: str, lensing_probability: str, z_source: str, false_id_percent,
                              reliability_thresh=0.8, minimum_z_source=2.5, n=100):
-    """ FUNCTION DETERMINES THE OPTIMAL LENSING PROBABILITY THAT HAS THE LOWEST FALSE ID RATE """
+    """
+    FUNCTION DETERMINES THE OPTIMAL LENSING PROBABILITY THAT HAS THE LOWEST FALSE ID RATE
+
+    :param data: Input data file
+    :param reliability: String for the reliability column
+    :param lensing_probability: String for the lensing probability column
+    :param z_source: String for the redshift of the source column
+    :param false_id_percent: Percentage false ID rate of the supplied data
+    :param reliability_thresh: Minimum reliability threshold used to calculate lensing probabilities
+    :param minimum_z_source: Minimum redshift of the source to always be considered lensed
+    :param n: The number of optimal p values tested in the range [0, 1]
+    :return: p_critical_range, p_false_positive, estimate1, estimate2, p_optimal
+    """
 
     # Select only sources that meet our reliability threshold
     source_reliable_id = data[data[reliability] >= reliability_thresh]
@@ -194,7 +241,17 @@ def optimal_lens_probability(data, reliability: str, lensing_probability: str, z
 # =========================================================================================================
 
 def clean_lensed_candidates(data, f250: str, f350: str, identification: str, var_stars: list, blazars: list):
-    """ FUNCTION CLEANS A SAMPLE OF LOCAL GALAXIES, BLAZARS AND VARIABLE STARS """
+    """
+    FUNCTION CLEANS A SAMPLE OF LOCAL GALAXIES, BLAZARS AND VARIABLE STARS
+
+    :param data: Input data file
+    :param f250: String for the 250-micron flux column [Jy]
+    :param f350: String for the 350-micron flux column [Jy]
+    :param identification: String for the ID column for which variable stars and blazars are known
+    :param var_stars: List of variable stars IDs for removal
+    :param blazars: List of blazar IDs for removal
+    :return: candidates
+    """
 
     # Restrict ourselves to distant objects to remove local galaxies
     candidates = data[(data[f250] / data[f350] < 1.5)]
@@ -217,12 +274,21 @@ def clean_lensed_candidates(data, f250: str, f350: str, identification: str, var
 # Function that splits the lensed sample from the full sample
 # =========================================================================================================
 
-def lens_split(data, f500: str, reliability: str, lens_probability: str, lens_probability_thresh, flux_500_thresh=0.1,
-               reliability_thresh=0.8):
-    """ RETURNS THE LENSED CANDIDATES FROM A SET OF SOURCES """
+def lens_split(data, f500: str, reliability: str, lens_probability: str, lens_probability_thresh, reliability_thresh=0.8):
+    """
+    RETURNS THE LENSED CANDIDATES FROM A SET OF SOURCES
+
+    :param data: Input data file
+    :param f500: String for the 500-micron flux column [Jy]
+    :param reliability: String for the reliability column
+    :param lens_probability: String for the lensing probability column
+    :param lens_probability_thresh: The minimum lensing probability for < 100 mJy candidates
+    :param reliability_thresh: The minimum reliability threshold for < 100 mJy candidates
+    :return: candidates
+    """
 
     # Conditions for the <100 mJy sample to be lensed
-    candidates = data[(data[f500] < flux_500_thresh) &
+    candidates = data[(data[f500] < 0.1) &
                       (data[reliability] > reliability_thresh) &
                       (data[lens_probability] >= lens_probability_thresh)]
 
@@ -234,7 +300,16 @@ def lens_split(data, f500: str, reliability: str, lens_probability: str, lens_pr
 # =========================================================================================================
 
 def cumulative_counts(data, flux: str, s_range: tuple, N, area):
-    """ CALCULATES THE CUMULATIVE COUNTS FOR A SET OF SOURCES """
+    """
+    CALCULATES THE CUMULATIVE COUNTS FOR A SET OF SOURCES
+
+    :param data: Input data file
+    :param flux: String for the flux column [Jy]
+    :param s_range: Tuple defining the minimum and maximum flux values [mJy]
+    :param N: Number of data points required
+    :param area: Survey area [square degrees]
+    :return: s_range_mJy, n_gts, n_gts_error_low, n_gts_error_high
+    """
 
     # Define the minimum and maximum flux range, convert to Jy and put in log space
     min_s, max_s = s_range
@@ -269,7 +344,17 @@ def cumulative_counts(data, flux: str, s_range: tuple, N, area):
 # =========================================================================================================
 
 def lensing_fraction(data, lensed_candidates, f500: str, s_range: tuple, N, area):
-    """ RETURNS THE LENSING FRACTION GIVEN A SAMPLE OF CANDIDATE LENSES AND THE TOTAL SAMPLE """
+    """
+    RETURNS THE LENSING FRACTION GIVEN A SAMPLE OF CANDIDATE LENSES AND THE TOTAL SAMPLE
+
+    :param data: Input data file
+    :param lensed_candidates: Input lensed candidates table
+    :param f500: String for the 500-micron flux column [Jy]
+    :param s_range: Tuple defining the minimum and maximum flux values [mJy]
+    :param N: Number of data points required
+    :param area: Survey area [square degrees]
+    :return: s_range_mJy, frac500
+    """
 
     # Define the minimum and maximum flux range, convert to Jy and put in log space
     min_s, max_s = s_range
@@ -299,7 +384,17 @@ def lensing_fraction(data, lensed_candidates, f500: str, s_range: tuple, N, area
 # =========================================================================================================
 
 def genuine_multiples(data, distance: str, groupid: str, redshift: str, redshift_errors: str, maximum_radius=8):
-    """ FUNCTION DETERMINES THE DISTRIBUTION OF delta(z)/sigma(delta(z)) USED FOR THE DETECTION OF MULTIPLES """
+    """
+    FUNCTION DETERMINES THE DISTRIBUTION OF delta(z)/sigma(delta(z)) USED FOR THE DETECTION OF MULTIPLES
+
+    :param data: Input data file
+    :param distance: String for separation column
+    :param groupid: String for the group's ID
+    :param redshift: String for the counterpart's redshift column
+    :param redshift_errors: String for the counterpart's redshift errors column
+    :param maximum_radius: The maximum radius to search for multiple genuine counterparts [arcsec]
+    :return: delta_div_sigma
+    """
 
     # Limit the data to the radius where multiples are likely to occur
     data_limit = data[data[distance] <= maximum_radius]
