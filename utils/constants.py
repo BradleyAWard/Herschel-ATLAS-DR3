@@ -8,7 +8,7 @@ from tqdm import tqdm
 
 
 # ====================================================================================
-# Function to calculate the value of Q
+# Function to calculate the value of Q (All candidates)
 # ====================================================================================
 
 def blanks(data, r_limit, groupid: str, distance: str):
@@ -29,6 +29,36 @@ def blanks(data, r_limit, groupid: str, distance: str):
     blank1 = len([r for idx, r in zip(data[groupid], data[distance]) if (m.isnan(idx)) & (r != 0) & (r > r_limit)])
     blankmulti = len(
         np.unique([idx for idx, r in zip(data[groupid], data['min_r']) if (m.isnan(idx) == False) & (r > r_limit)]))
+    blank_total = blank0 + blank1 + blankmulti
+
+    return blank_total
+
+
+# ====================================================================================
+# Function to calculate the value of Q (Galaxies)
+# ====================================================================================
+
+def blanks_gals(data, r_limit, groupid: str, distance: str, flag_SG: str):
+    """
+    FUNCTION TO CALCULATE THE NUMBER OF BLANK POSITIONS FOR A GIVEN MAXIMUM RADIUS
+
+    :param data: Input data file
+    :param r_limit: The maximum radius to search for blank sources
+    :param groupid: String for the counterpart group's ID
+    :param distance: String for the separation column [arcsec]
+    :param flag_SG: String for the star/galaxy classification column
+    :return: blank_total
+    """
+
+    galaxies = data[data[flag_SG] == 1]
+    smallest_r = galaxies.groupby([groupid])[distance]
+    data = data.assign(min_r_gal=smallest_r.transform(min))
+
+    blank0 = len([r for idx, r in zip(data[groupid], data[distance]) if (m.isnan(idx)) & (r == 0)])
+
+    blank1 = len([r for idx, r, flag in zip(data[groupid], data[distance], data[flag_SG]) if ((m.isnan(idx)) & (r != 0) & (flag == 1) & (r > r_limit)) | ((m.isnan(idx)) & (r != 0) & (flag == 0))])
+    blankmulti = len(
+        np.unique([idx for idx, r in zip(data[groupid], data['min_r_gal']) if (m.isnan(idx) == False) & (r > r_limit)]))
     blank_total = blank0 + blank1 + blankmulti
 
     return blank_total

@@ -250,7 +250,7 @@ def clean_lensed_candidates(data, f250: str, f350: str, identification: str, var
     :param identification: String for the ID column for which variable stars and blazars are known
     :param var_stars: List of variable stars IDs for removal
     :param blazars: List of blazar IDs for removal
-    :return: candidates
+    :return: candidates, local_galaxies, all_var_stars, all_blazars
     """
 
     # Restrict ourselves to distant objects to remove local galaxies
@@ -267,7 +267,11 @@ def clean_lensed_candidates(data, f250: str, f350: str, identification: str, var
         blazar_found = data[data[identification] == blazar]
         candidates = pd.concat([candidates, blazar_found, blazar_found]).drop_duplicates(keep=False)
 
-    return candidates
+    # Collect all variable stars and blazars
+    all_var_stars = data.loc[data[identification].isin(var_stars)]
+    all_blazars = data.loc[data[identification].isin(blazars)]
+
+    return candidates, local_galaxies, all_var_stars, all_blazars
 
 
 # =========================================================================================================
