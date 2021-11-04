@@ -99,7 +99,7 @@ def q_div_n(n_real, n_normalized, q0, bincentres, window_size, mag_min=9, mag_ma
 # ====================================================================================
 
 def likelihood(data, counterpart_id: str, f250: str, e250: str, SG: str, distance: str, band: str, k, fwhm,
-               qn_gal: tuple, qn_stars: tuple):
+               qn_gal: tuple, qn_stars: tuple, mag_min=9, mag_max=22):
     """
     RETURNS THE LR VALUES FOR A SET OF SOURCES
 
@@ -127,6 +127,11 @@ def likelihood(data, counterpart_id: str, f250: str, e250: str, SG: str, distanc
 
         # If there is no counterpart do not add a likelihood value
         if pd.isnull(data[counterpart_id][obj]):
+            likelihood_ratios.append(np.nan)
+            continue
+
+        # If the K-band magnitude is out of range do not add a likelihood value
+        if (data[band][obj] < mag_min) | (data[band][obj] > mag_max):
             likelihood_ratios.append(np.nan)
             continue
 
@@ -181,7 +186,7 @@ def reliability(data, counterpart_id: str, groupid: str, likelihood: str, q0):
 
         # If single object
         if m.isnan(data[groupid][obj]):
-            r_val = (data[likelihood][obj] / (data[likelihood][obj] + 1))
+            r_val = (data[likelihood][obj] / (data[likelihood][obj] + (1 - q0)))
             r.append(r_val)
 
         # If multiple objects

@@ -22,7 +22,7 @@ def N_false(data, reliability: str, r_thresh):
 
     false_ids = [(1 - r) for r in data[reliability] if r >= r_thresh]
     n_false_ids = np.sum(false_ids)
-    n_false_ids_percent = n_false_ids / len(data) * 100
+    n_false_ids_percent = n_false_ids / len(false_ids) * 100
     return n_false_ids, n_false_ids_percent
 
 
