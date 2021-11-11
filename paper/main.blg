@@ -1,0 +1,63 @@
+This is BibTeX, Version 0.99d
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: main.aux
+Reallocating 'name_of_file' (item size: 1) to 6 items.
+The style file: mnras.bst
+Reallocating 'name_of_file' (item size: 1) to 13 items.
+Database file #1: bibliography.bib
+Reallocating 'singl_function' (item size: 4) to 100 items.
+Reallocating 'singl_function' (item size: 4) to 100 items.
+`series' is a missing field, not a string, for entry Vaccari_2016
+while executing---line 1822 of file mnras.bst
+"" is a string literal, not an integer, for entry Vaccari_2016
+while executing---line 1822 of file mnras.bst
+`series' is a missing field, not a string, for entry Vaccari_2016
+while executing---line 1822 of file mnras.bst
+`series' is a missing field, not a string, for entry Vaccari_2016
+while executing---line 1822 of file mnras.bst
+"" is a string literal, not an integer, for entry Vaccari_2016
+while executing---line 1822 of file mnras.bst
+`series' is a missing field, not a string, for entry Vaccari_2016
+while executing---line 1822 of file mnras.bst
+You've used 78 entries,
+            2881 wiz_defined-function locations,
+            1432 strings with 61434 characters,
+and the built_in function-call counts, 33610 in all, are:
+= -- 2970
+> -- 2114
+< -- 88
++ -- 951
+- -- 243
+* -- 4531
+:= -- 4970
+add.period$ -- 0
+call.type$ -- 78
+change.case$ -- 156
+chr.to.int$ -- 76
+cite$ -- 78
+duplicate$ -- 1703
+empty$ -- 1737
+format.name$ -- 507
+if$ -- 5799
+int.to.chr$ -- 3
+int.to.str$ -- 0
+missing$ -- 78
+newline$ -- 247
+num.names$ -- 432
+pop$ -- 327
+preamble$ -- 1
+purify$ -- 312
+quote$ -- 0
+skip$ -- 999
+stack$ -- 0
+substring$ -- 2118
+swap$ -- 748
+text.length$ -- 315
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 702
+warning$ -- 0
+while$ -- 533
+width$ -- 0
+write$ -- 794
+(There were 6 error messages)
