@@ -1,4 +1,4 @@
 ![649274main_PIA15626_full](https://user-images.githubusercontent.com/60989190/141337441-600027c3-1717-433e-9d9d-4d36d05441ec.jpg)
 
 # Herschel - ATLAS Data Release III
-This repostiory contains the analysis of VIKING near-infrared counterparts to Herschel sources in the South Galactic Pole field.
+The Herschel-ATLAS was the largest open time submillimetre survey carried out using the Herschel Space Observatory, covering 660 square degrees of sky, spanning redshifts out to z~6. Nearly half a million sources were detected in the Herschel maps, with approximately 200,000 sources found in the South Galactic Pole field (~317 square degrees). This repostiory contains the analysis of VIKING near-infrared counterparts to the Herschel sources in the SGP. We provide a data release of ~110,000 reliably matched counterparts to these submillimetre sources, providing an extensive catalogue of dusty, star-forming SMGs for the study of obscured star formation.
